@@ -33,7 +33,7 @@ public final class PlayingTask implements IGameTask {
                     game.end();
                     return;
                 }
-                if (time <= 5 || time % 60 == 0) {
+                if (time <= 5 || time % 60 == 0 && time != game.getGameTime()) {
                     game.broadcast(Component.text("До конца игры: " + time + " сек.", TextColor.color(0x42ffe6)),
                             Sound.BLOCK_NOTE_BLOCK_HAT);
                 }
