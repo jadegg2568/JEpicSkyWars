@@ -6,9 +6,7 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.configuration.ConfigurationSection;
 
-import java.util.EnumMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public final class GameService {
     private final EpicSkyWars main;
@@ -49,10 +47,9 @@ public final class GameService {
         }
 
         Map<SpawnType, Location> spawns = loadSpawns(section);
-        Game loadedGame = new Game(main, w, name,
+        game = new Game(main, w, name,
                 min, max,
                 waitingTime, gameTime, spawns);
-        game = loadedGame;
         try {
             game.load();
         } catch (Exception e) {
@@ -67,14 +64,18 @@ public final class GameService {
             return spawns;
         }
 
+        List<String> notFoundSpawns = new ArrayList<>();
         for (SpawnType type : SpawnType.values()) {
             String key = type.name().toLowerCase(Locale.ROOT);
             Location spawn = locations.getLocation(key);
             if (spawn == null) {
-                continue;
+                notFoundSpawns.add(type.name());
             }
 
             spawns.put(type, spawn);
+        }
+        if (!notFoundSpawns.isEmpty()) {
+            throw new IllegalStateException("Couldn't find spawns: " + String.join(", ", notFoundSpawns));
         }
         return spawns;
     }
