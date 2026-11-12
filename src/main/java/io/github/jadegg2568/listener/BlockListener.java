@@ -3,17 +3,17 @@ package io.github.jadegg2568.listener;
 import io.github.jadegg2568.Game;
 import io.github.jadegg2568.GameService;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockExplodeEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityExplodeEvent;
-
-import java.util.List;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 
 public final class BlockListener implements Listener {
     private final GameService gameService;
@@ -22,43 +22,142 @@ public final class BlockListener implements Listener {
         this.gameService = gameService;
     }
 
+    // BREAK
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onBlockBreak(BlockBreakEvent event) {
-        Game game = getGameByPlayer(event.getPlayer());
-        if (game != null && !game.isPlaying(event.getPlayer())) {
-            event.setCancelled(true);
+    public void onBlockBreak(BlockBreakEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game == null) return;
+
+        if (!game.isPlaying(e.getPlayer())) {
+            e.setCancelled(true);
+            return;
+        }
+
+        saveBlock(game, e.getBlock());
+    }
+
+    // PLACE + MULTI PLACE
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game == null) return;
+
+        if (!game.isPlaying(e.getPlayer())) {
+            e.setCancelled(true);
+            return;
+        }
+
+        if (e instanceof BlockMultiPlaceEvent multi) {
+            multi.getReplacedBlockStates().forEach(state -> saveBlock(game, state));
+        } else {
+            saveBlock(game, e.getBlockReplacedState());
         }
     }
 
+    // EXPLOSIONS
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onBlockPlace(BlockPlaceEvent event) {
-        Game game = getGameByPlayer(event.getPlayer());
-        if (game != null && !game.isPlaying(event.getPlayer())) {
-            event.setCancelled(true);
-        }
+    public void onBlockExplode(BlockExplodeEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game == null) return;
+
+        e.blockList().forEach(block -> saveBlock(game, block));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onBlockExplode(BlockExplodeEvent event) {
-        if (isGameWorld(event.getBlock().getWorld())) {
+    public void onEntityExplode(EntityExplodeEvent e) {
+        Game game = getGameByWorld(e.getLocation().getWorld());
+        if (game == null) return;
+
+        e.blockList().forEach(block -> saveBlock(game, block));
+    }
+
+    // LIQUID FLOW
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onLiquidFlow(BlockFromToEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game == null) return;
+
+        saveBlock(game, e.getToBlock());
+    }
+
+    // BUCKETS
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBucketEmpty(PlayerBucketEmptyEvent e) {
+        Game game = getGameByWorld(e.getPlayer().getWorld());
+        if (game == null) return;
+
+        if (!game.isPlaying(e.getPlayer())) {
+            e.setCancelled(true);
+            return;
         }
+
+        saveBlock(game, e.getBlockClicked().getRelative(e.getBlockFace()));
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onEntityExplode(EntityExplodeEvent event) {
+    public void onBucketFill(PlayerBucketFillEvent e) {
+        Game game = getGameByWorld(e.getPlayer().getWorld());
+        if (game == null) return;
 
-        if (isGameWorld(event.getLocation().getWorld())) {
-            event.blockList().clear();
+        if (!game.isPlaying(e.getPlayer())) {
+            e.setCancelled(true);
+            return;
+        }
+
+        saveBlock(game, e.getBlockClicked());
+    }
+
+    // PLANTS / TREES
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockGrow(BlockGrowEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game != null) saveBlock(game, e.getBlock());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockSpread(BlockSpreadEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game != null) saveBlock(game, e.getBlock());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBlockForm(BlockFormEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game != null) saveBlock(game, e.getBlock());
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onFertilize(BlockFertilizeEvent e) {
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game == null) return;
+
+        e.getBlocks().forEach(state -> saveBlock(game, state.getBlock()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onStructureGrow(StructureGrowEvent e) {
+        Game game = getGameByWorld(e.getWorld());
+        if (game == null) return;
+
+        e.getBlocks().forEach(state -> saveBlock(game, state.getBlock()));
+    }
+
+    // UTILS
+    private void saveBlock(Game game, Block block) {
+        saveBlock(game, block.getState());
+    }
+
+    private void saveBlock(Game game, BlockState state) {
+        boolean alreadySaved = game.getChanges().stream()
+                .anyMatch(existing -> existing.getLocation().equals(state.getLocation()));
+
+        if (!alreadySaved) {
+            game.getChanges().add(state);
         }
     }
 
-    private Game getGameByPlayer(Player p) {
+    private Game getGameByWorld(World world) {
         Game game = gameService.getGame();
-        return game != null && game.isLoaded() && game.hasPlayer(p) ? game : null;
-    }
-
-    private boolean isGameWorld(World w) {
-        Game game = gameService.getGame();
-        return game != null && game.isLoaded() && game.getW() == w;
+        return game != null && game.isLoaded() && game.getW().equals(world) ? game : null;
     }
 }

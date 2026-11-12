@@ -38,7 +38,7 @@ public class Game {
     // not in game logic
     private final HashSet<Player> spectators = new HashSet<>();
 
-    private final Set<BlockState> changes = new HashSet<>();
+    private final List<BlockState> changes = new ArrayList<>();
 
     public Game(Plugin plugin, World w, String name, int min, int max, int waitingTime, int gameTime,
                 Map<SpawnType, Location> spawns) {
@@ -136,6 +136,7 @@ public class Game {
     }
 
     public void resetChanges() {
+        Collections.reverse(changes);
         for (BlockState state : changes) {
             state.update(true, false);
         }
@@ -321,7 +322,7 @@ public class Game {
         return gameTime;
     }
 
-    public Set<BlockState> getChanges() {
+    public List<BlockState> getChanges() {
         return changes;
     }
 }
