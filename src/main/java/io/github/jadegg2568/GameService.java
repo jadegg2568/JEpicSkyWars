@@ -46,15 +46,19 @@ public final class GameService {
             throw new IllegalStateException("Unable to load game world: " + world);
         }
 
-        Map<SpawnType, Location> spawns = loadSpawns(section, w);
-        Game loadedGame = new Game(w, name,
+        Map<SpawnType, Location> spawns = loadSpawns(section);
+        Game loadedGame = new Game(plugin, w, name,
                 min, max,
                 waitingTime, gameTime, spawns);
-        loadedGame.load();
         game = loadedGame;
+        try {
+            game.load();
+        } catch (Exception e) {
+            throw new IllegalStateException("Unable to load game: " + e.getMessage());
+        }
     }
 
-    private Map<SpawnType, Location> loadSpawns(ConfigurationSection gameSection, World world) {
+    private Map<SpawnType, Location> loadSpawns(ConfigurationSection gameSection) {
         Map<SpawnType, Location> spawns = new EnumMap<>(SpawnType.class);
         ConfigurationSection locations = gameSection.getConfigurationSection("locations");
         if (locations == null) {

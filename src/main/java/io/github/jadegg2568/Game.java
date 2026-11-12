@@ -1,6 +1,10 @@
 package io.github.jadegg2568;
 
 import com.destroystokyo.paper.Title;
+import io.github.jadegg2568.task.EndTask;
+import io.github.jadegg2568.task.IGameTask;
+import io.github.jadegg2568.task.PlayingTask;
+import io.github.jadegg2568.task.WaitingTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
@@ -9,6 +13,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.plugin.Plugin;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,9 +23,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class Game {
+    private final Plugin plugin;
     // config
     private final World w;
     private final String name;
@@ -32,16 +37,17 @@ public class Game {
 
     // game logic
     private boolean loaded;
-    private final AtomicBoolean inGame = new AtomicBoolean(false);
-    private final AtomicInteger currentTime = new AtomicInteger(0);
+    private boolean inGame = false;
+    private IGameTask activeTask;
 
     // players
     private final HashSet<Player> players = new HashSet<>();
     // not in game logic
     private final HashSet<Player> spectators = new HashSet<>();
 
-    public Game(World w, String name, int min, int max, int waitingTime, int gameTime,
+    public Game(Plugin plugin, World w, String name, int min, int max, int waitingTime, int gameTime,
                 Map<SpawnType, Location> spawns) {
+        this.plugin = plugin;
         this.w = w;
         this.name = name;
         this.min = min;
@@ -74,21 +80,71 @@ public class Game {
         w.setTime(1000);
         w.setStorm(false);
         w.setThundering(false);
-        inGame.set(false);
-        currentTime.set(waitingTime);
+        inGame = false;
         loaded = true;
+
+        activeTask = new WaitingTask(plugin, this);
+        activeTask.start();
     }
 
-    public Location getSpawn(SpawnType type) {
-        return spawns.get(type);
+    public int getTime() {
+        return activeTask != null ? activeTask.getTime() : 0;
     }
 
-    public boolean isLoaded() {
-        return loaded;
+    public void beginPlaying() {
+        activeTask = null;
+        if (!loaded || inGame || players.size() < min || players.size() > max) {
+            return;
+        }
+        inGame = true;
+
+        // get mechanics ready
+        for (Player player : players) {
+            resetPlayer(player);
+        }
+        broadcast(Component.text("Игра началась!", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+
+        // start game task
+        activeTask = new PlayingTask(plugin, this);
+        activeTask.start();
+    }
+
+    public void end() {
+        if (!inGame) {
+            return;
+        }
+        if (activeTask != null) {
+            activeTask.cancel();
+        }
+        // start end task
+        activeTask = new EndTask(plugin, this);
+        activeTask.start();
+    }
+
+    public void finish() {
+        if (activeTask != null) {
+            activeTask.cancel();
+        }
+        for (Player player : players) {
+            resetPlayer(player);
+            player.teleport(getSpawn(SpawnType.WAITING));
+        }
+        for (Player spectator : spectators) {
+            resetPlayer(spectator);
+            spectator.teleport(getSpawn(SpawnType.WAITING));
+        }
+        players.addAll(spectators);
+        spectators.clear();
+        inGame = false;
+
+        for (Player player : new ArrayList<>(players)) {
+            player.kick(Component.text("Игра завершена.\nСпасибо за игру!\n\nMade By: JadeGG_\nJava Bukkit Coding\nEpicSkyWars Plugin", TextColor.color(0x35AF15)));
+        }
+        activeTask = null;
     }
 
     public void join(Player p) {
-        if (!inGame.get()) {
+        if (!inGame) {
             players.add(p);
             // broadcast
             TextComponent message = Component.text("Зашёл: ", TextColor.color(0x42ffe6)).append(Component.text(p.getName(), TextColor.color(0xff9538)));
@@ -109,40 +165,24 @@ public class Game {
         }
 
         if (wasPlayer) {
-            boolean wasInGame = inGame.get();
             Component message = Component.text(
-                    wasInGame ? "Отключился: " : "Вышел: ",
-                    TextColor.color(wasInGame ? 0x757575 : 0x42ffe6)
+                    inGame ? "Отключился: " : "Вышел: ",
+                    TextColor.color(inGame ? 0x757575 : 0x42ffe6)
             ).append(Component.text(p.getName(), TextColor.color(0xff9538)));
             broadcast(message, Sound.ENTITY_VILLAGER_NO);
+            endIfAvailable();
         }
 
         if (p.isOnline()) {
             resetPlayer(p);
         }
-        if (players.isEmpty()) {
-            inGame.set(false);
-        }
-    }
-
-    public void start() {
-        if (inGame.get() || players.size() < min || players.size() > max
-                || !inGame.compareAndSet(false, true)) {
-            return;
-        }
-
-        for (Player player : players) {
-            resetPlayer(player);
-        }
-        broadcast(Component.text("Игра началась!", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
     }
 
     public void endIfAvailable() {
-        if (!inGame.get() || players.size() > 1) {
+        if (!inGame || players.size() > 1) {
             return;
         }
-        Player winner = players.size() == 1 ? players.stream().findFirst().get() : null;
-        switchSpectator(winner, true);
+        end();
     }
 
     public void onDie(Player p, Player killer, boolean byVoid) {
@@ -161,12 +201,13 @@ public class Game {
                 .build());
 
         switchSpectator(p, true);
+        endIfAvailable();
     }
 
     // make spectator
     public void switchSpectator(Player p, boolean b) {
         players.remove(p);
-        spectators.remove(p);
+        spectators.add(p);
         p.setGameMode(b ? GameMode.SPECTATOR : GameMode.SURVIVAL);
     }
 
@@ -213,6 +254,14 @@ public class Game {
 
     public void broadcast(Component message) {
         broadcast(message, null);
+    }
+
+    public Location getSpawn(SpawnType type) {
+        return spawns.get(type);
+    }
+
+    public boolean isLoaded() {
+        return loaded;
     }
 
     public World getW() {
