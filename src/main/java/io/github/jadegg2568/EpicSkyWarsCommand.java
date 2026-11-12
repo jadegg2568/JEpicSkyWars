@@ -76,7 +76,7 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
                 // set spawn
                 main.getConfig().set("game.locations." + type.name(), spawn);
             }
-            case "fakeban" -> {
+            case "fakeban", "fakehypixelban" -> {
                 if (args.length < 2) {
                     sender.sendMessage(Component.text("Недостаточно аргов!"));
                     break;
@@ -98,12 +98,26 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length != 1) {
-            return List.of();
+        if (args.length == 1) {
+            return matching(args[0], Stream.of("join", "leave", "setspawn", "fakeban", "fakehypixelban"));
         }
-        String prefix = args[0].toLowerCase(Locale.ROOT);
-        return Stream.of("join", "leave", "setspawn", "fakehypixelban")
-                .filter(subcommand -> subcommand.startsWith(prefix))
+        if (args.length == 2) {
+            String subcommand = args[0].toLowerCase(Locale.ROOT);
+            return switch (subcommand) {
+                case "setspawn" -> matching(args[1], Stream.of(SpawnType.values())
+                        .map(type -> type.name().toLowerCase(Locale.ROOT)));
+                case "fakeban", "fakehypixelban" -> matching(args[1], Bukkit.getOnlinePlayers().stream()
+                        .map(Player::getName));
+                default -> List.of();
+            };
+        }
+        return List.of();
+    }
+
+    private List<String> matching(String input, Stream<String> options) {
+        String prefix = input.toLowerCase(Locale.ROOT);
+        return options
+                .filter(option -> option.toLowerCase(Locale.ROOT).startsWith(prefix))
                 .toList();
     }
 

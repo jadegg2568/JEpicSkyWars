@@ -15,7 +15,9 @@ public final class EpicSkyWars extends JavaPlugin {
         if (command == null) {
             throw new IllegalStateException("Command 'epicsw' is missing from plugin.yml");
         }
-        command.setExecutor(new EpicSkyWarsCommand(gameService));
+        EpicSkyWarsCommand executor = new EpicSkyWarsCommand(this, gameService);
+        command.setExecutor(executor);
+        command.setTabCompleter(executor);
     }
 
     @Override
