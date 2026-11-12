@@ -1,18 +1,26 @@
 package io.github.jadegg2568;
 
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.configuration.ConfigurationSection;
+
+import java.util.EnumMap;
+import java.util.Locale;
+import java.util.Map;
 
 public final class GameService {
     private final EpicSkyWars plugin;
-    private GameConfig game;
+    private Game game;
+
+    public Game getGame() {
+        return game;
+    }
 
     public GameService(EpicSkyWars plugin) {
         this.plugin = plugin;
         loadGame();
-    }
-
-    public GameConfig getGame() {
-        return game;
     }
 
     public void reload() {
@@ -26,14 +34,43 @@ public final class GameService {
             throw new IllegalStateException("Invalid configuration at game: expected a section");
         }
 
-        game = new GameConfig(
-                getRequiredString(section, "world"),
-                getRequiredString(section, "name"),
-                getRequiredInt(section, "min"),
-                getRequiredInt(section, "max"),
-                getRequiredInt(section, "teamSize"),
-                getRequiredInt(section, "teamCount")
-        );
+        String world = getRequiredString(section, "world");
+        String name = getRequiredString(section, "name");
+        int min = getRequiredInt(section, "min");
+        int max = getRequiredInt(section, "max");
+        int waitingTime = getRequiredInt(section, "waitingTime");
+        int gameTime = getRequiredInt(section, "gameDuration");
+
+        World w = Bukkit.createWorld(new WorldCreator(world));
+        if (w == null) {
+            throw new IllegalStateException("Unable to load game world: " + world);
+        }
+
+        Map<SpawnType, Location> spawns = loadSpawns(section, w);
+        Game loadedGame = new Game(w, name,
+                min, max,
+                waitingTime, gameTime, spawns);
+        loadedGame.load();
+        game = loadedGame;
+    }
+
+    private Map<SpawnType, Location> loadSpawns(ConfigurationSection gameSection, World world) {
+        Map<SpawnType, Location> spawns = new EnumMap<>(SpawnType.class);
+        ConfigurationSection locations = gameSection.getConfigurationSection("locations");
+        if (locations == null) {
+            return spawns;
+        }
+
+        for (SpawnType type : SpawnType.values()) {
+            String key = type.name().toLowerCase(Locale.ROOT);
+            Location spawn = locations.getLocation(key);
+            if (spawn == null) {
+                continue;
+            }
+
+            spawns.put(type, spawn);
+        }
+        return spawns;
     }
 
     private String getRequiredString(ConfigurationSection section, String key) {

@@ -4,5 +4,8 @@ game:
   name: game-1
   min: 4
   max: 8
-  teamSize: 1
-  teamCount: 8
+  waitingTime: 30
+  gameDuration: 300
+  # Required spawn entries: waiting, spectator, cage_1 through cage_8.
+  # Each entry needs x, y, z coordinates; yaw and pitch are optional.
+  locations: {}

@@ -1,0 +1,241 @@
+package io.github.jadegg2568;
+
+import com.destroystokyo.paper.Title;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.*;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
+public class Game {
+    // config
+    private final World w;
+    private final String name;
+    private final int min;
+    private final int max;
+    private final int waitingTime;
+    private final int gameTime;
+    private final Map<SpawnType, Location> spawns;
+
+    // game logic
+    private boolean loaded;
+    private final AtomicBoolean inGame = new AtomicBoolean(false);
+    private final AtomicInteger currentTime = new AtomicInteger(0);
+
+    // players
+    private final HashSet<Player> players = new HashSet<>();
+    // not in game logic
+    private final HashSet<Player> spectators = new HashSet<>();
+
+    public Game(World w, String name, int min, int max, int waitingTime, int gameTime,
+                Map<SpawnType, Location> spawns) {
+        this.w = w;
+        this.name = name;
+        this.min = min;
+        this.max = max;
+        this.waitingTime = waitingTime;
+        this.gameTime = gameTime;
+        EnumMap<SpawnType, Location> spawnCopy = new EnumMap<>(SpawnType.class);
+        spawnCopy.putAll(spawns);
+        this.spawns = Collections.unmodifiableMap(spawnCopy);
+    }
+
+    public void load() {
+        ArrayList<SpawnType> missingSpawns = new ArrayList<>();
+        for (SpawnType type : SpawnType.values()) {
+            Location spawn = spawns.get(type);
+            if (spawn == null || !w.equals(spawn.getWorld())
+                    || !Double.isFinite(spawn.getX())
+                    || !Double.isFinite(spawn.getY())
+                    || !Double.isFinite(spawn.getZ())) {
+                missingSpawns.add(type);
+            }
+        }
+        if (!missingSpawns.isEmpty()) {
+            throw new IllegalStateException("Cannot load game; missing or invalid spawn locations: " + missingSpawns);
+        }
+
+        w.setGameRule(GameRules.ADVANCE_TIME, false);
+        w.setGameRule(GameRules.ADVANCE_WEATHER, false);
+        w.setGameRule(GameRules.SPAWN_MOBS, false);
+        w.setTime(1000);
+        w.setStorm(false);
+        w.setThundering(false);
+        inGame.set(false);
+        currentTime.set(waitingTime);
+        loaded = true;
+    }
+
+    public Location getSpawn(SpawnType type) {
+        return spawns.get(type);
+    }
+
+    public boolean isLoaded() {
+        return loaded;
+    }
+
+    public void join(Player p) {
+        if (!inGame.get()) {
+            players.add(p);
+            // broadcast
+            TextComponent message = Component.text("Зашёл: ", TextColor.color(0x42ffe6)).append(Component.text(p.getName(), TextColor.color(0xff9538)));
+            broadcast(message,
+                    Sound.ENTITY_VILLAGER_NO);
+        } else {
+            // add to spectators
+            resetPlayer(p);
+            switchSpectator(p, true);
+        }
+    }
+
+    public void leave(Player p) {
+        boolean wasPlayer = players.remove(p);
+        boolean wasSpectator = spectators.remove(p);
+        if (!wasPlayer && !wasSpectator) {
+            return;
+        }
+
+        if (wasPlayer) {
+            boolean wasInGame = inGame.get();
+            Component message = Component.text(
+                    wasInGame ? "Отключился: " : "Вышел: ",
+                    TextColor.color(wasInGame ? 0x757575 : 0x42ffe6)
+            ).append(Component.text(p.getName(), TextColor.color(0xff9538)));
+            broadcast(message, Sound.ENTITY_VILLAGER_NO);
+        }
+
+        if (p.isOnline()) {
+            resetPlayer(p);
+        }
+        if (players.isEmpty()) {
+            inGame.set(false);
+        }
+    }
+
+    public void start() {
+        if (inGame.get() || players.size() < min || players.size() > max
+                || !inGame.compareAndSet(false, true)) {
+            return;
+        }
+
+        for (Player player : players) {
+            resetPlayer(player);
+        }
+        broadcast(Component.text("Игра началась!", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+    }
+
+    public void endIfAvailable() {
+        if (!inGame.get() || players.size() > 1) {
+            return;
+        }
+        Player winner = players.size() == 1 ? players.stream().findFirst().get() : null;
+        switchSpectator(winner, true);
+    }
+
+    public void onDie(Player p, Player killer, boolean byVoid) {
+        // broadcast
+        if (killer != null) {
+            broadcast(Component.text(p.getName() + " убит игроком " + killer.getName() + ".", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+        } else {
+            broadcast(Component.text(p.getName() + (byVoid ? " выпал." : " умер."), TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+        }
+
+        // send him broadcast
+        p.sendMessage(Component.text("Вы умерли! Удачи в следующей игре.", TextColor.color(0x757575)));
+        p.sendTitle(Title.builder().
+                title(ChatColor.RED + "Вы проебали!")
+                .subtitle("В прочем нам похуй.")
+                .build());
+
+        switchSpectator(p, true);
+    }
+
+    // make spectator
+    public void switchSpectator(Player p, boolean b) {
+        players.remove(p);
+        spectators.remove(p);
+        p.setGameMode(b ? GameMode.SPECTATOR : GameMode.SURVIVAL);
+    }
+
+    // resets all player stats
+    public void resetPlayer(Player p) {
+        p.closeInventory();
+        p.getInventory().clear();
+        p.getInventory().setArmorContents(new ItemStack[4]);
+        p.getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+        p.setHealth(Objects.requireNonNull(
+                p.getAttribute(Attribute.MAX_HEALTH),
+                "Player is missing the MAX_HEALTH attribute"
+        ).getValue());
+        p.setAbsorptionAmount(0);
+        p.setFoodLevel(20);
+        p.setSaturation(5);
+        p.setExhaustion(0);
+        p.setExp(0);
+        p.setLevel(0);
+        p.setTotalExperience(0);
+        for (var effect : new HashSet<>(p.getActivePotionEffects())) {
+            p.removePotionEffect(effect.getType());
+        }
+        p.setFireTicks(0);
+        p.setFreezeTicks(0);
+        p.setFallDistance(0);
+        p.setFlying(false);
+        p.setAllowFlight(false);
+        p.setGameMode(GameMode.SURVIVAL);
+        p.setGlowing(false);
+        p.resetCooldown();
+    }
+
+    public void broadcast(Component message, Sound sound) {
+        Set<Player> recipients = new HashSet<>(players);
+        recipients.addAll(spectators);
+        for (Player player : recipients) {
+            player.sendMessage(message);
+            if (sound != null) {
+                player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+            }
+        }
+    }
+
+    public void broadcast(Component message) {
+        broadcast(message, null);
+    }
+
+    public World getW() {
+        return w;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getMin() {
+        return min;
+    }
+
+    public int getMax() {
+        return max;
+    }
+
+    public int getWaitingTime() {
+        return waitingTime;
+    }
+
+    public int getGameTime() {
+        return gameTime;
+    }
+}
