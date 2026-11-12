@@ -10,17 +10,12 @@ import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 public class Game {
     private final Plugin plugin;
@@ -42,6 +37,8 @@ public class Game {
     private final HashSet<Player> players = new HashSet<>();
     // not in game logic
     private final HashSet<Player> spectators = new HashSet<>();
+
+    private final Set<BlockState> changes = new HashSet<>();
 
     public Game(Plugin plugin, World w, String name, int min, int max, int waitingTime, int gameTime,
                 Map<SpawnType, Location> spawns) {
@@ -115,26 +112,40 @@ public class Game {
         activeTask.start();
     }
 
-    public void finish() {
-        for (Player player : players) {
-            resetPlayer(player);
-            player.teleport(getSpawn(SpawnType.WAITING));
-        }
-        for (Player spectator : spectators) {
-            resetPlayer(spectator);
-            spectator.teleport(getSpawn(SpawnType.WAITING));
-        }
+    public void reload() {
         players.addAll(spectators);
         spectators.clear();
         inGame = false;
 
-        for (Player player : new ArrayList<>(players)) {
-            player.kick(Component.text("Игра завершена.\nСпасибо за игру!\n\nMade By: JadeGG_\nJava Bukkit Coding\nEpicSkyWars Plugin", TextColor.color(0x35AF15)));
+//        for (Player player : new ArrayList<>(players)) {
+//            player.kick(Component.text("Игра завершена.\nСпасибо за игру!\n\nMade By: JadeGG_\nJava Bukkit Coding\nEpicSkyWars Plugin", TextColor.color(0x35AF15)));
+//        }
+        List<Player> players2 = new ArrayList<>(players);
+        for (Player p : players2) {
+            leave(p);
         }
-        activeTask = null;
+
+        resetChanges();
+
+        for (Player player : players2) {
+            join(player);
+        }
+
+        activeTask = new WaitingTask(plugin, this);
+        activeTask.start();
+    }
+
+    public void resetChanges() {
+        for (BlockState state : changes) {
+            state.update(true, false);
+        }
+        changes.clear();
     }
 
     public void join(Player p) {
+        if (players.contains(p) || spectators.contains(p)) {
+            return;
+        }
         if (!inGame) {
             players.add(p);
             // broadcast
@@ -146,15 +157,8 @@ public class Game {
             // add to spectators
             resetPlayer(p);
             switchSpectator(p, true);
+            p.teleport(getSpawn(SpawnType.SPECTATOR));
         }
-    }
-
-    public boolean hasPlayer(Player player) {
-        return players.contains(player) || spectators.contains(player);
-    }
-
-    public boolean isFull() {
-        return !inGame && players.size() >= max;
     }
 
     public void leave(Player p) {
@@ -207,8 +211,13 @@ public class Game {
 
     // make spectator
     public void switchSpectator(Player p, boolean b) {
-        players.remove(p);
-        spectators.add(p);
+        if (b) {
+            players.remove(p);
+            spectators.add(p);
+        } else {
+            spectators.remove(p);
+            players.add(p);
+        }
         p.setGameMode(b ? GameMode.SPECTATOR : GameMode.SURVIVAL);
     }
 
@@ -253,8 +262,29 @@ public class Game {
         }
     }
 
+
     public void broadcast(Component message) {
         broadcast(message, null);
+    }
+
+    public boolean hasPlayer(Player player) {
+        return players.contains(player) || spectators.contains(player);
+    }
+
+    public boolean isInGame() {
+        return inGame;
+    }
+
+    public boolean isPlaying(Player player) {
+        return inGame && players.contains(player);
+    }
+
+    public boolean isSpectator(Player player) {
+        return spectators.contains(player);
+    }
+
+    public boolean isFull() {
+        return !inGame && players.size() >= max;
     }
 
     public Set<Player> getPlayers() { return players; }
@@ -289,5 +319,9 @@ public class Game {
 
     public int getGameTime() {
         return gameTime;
+    }
+
+    public Set<BlockState> getChanges() {
+        return changes;
     }
 }

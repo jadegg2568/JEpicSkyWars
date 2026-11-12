@@ -27,7 +27,7 @@ public final class EndTask implements IGameTask {
         task = new BukkitRunnable() {
             @Override
             public void run() {
-                game.finish();
+                game.reload();
             }
         }.runTaskLater(plugin, 100L);
     }

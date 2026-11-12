@@ -1,7 +1,10 @@
 package io.github.jadegg2568;
 
 import io.github.jadegg2568.lucky.LuckyDropRegistry;
+import io.github.jadegg2568.listener.BlockListener;
+import io.github.jadegg2568.listener.PlayerListener;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class EpicSkyWars extends JavaPlugin {
@@ -21,6 +24,10 @@ public final class EpicSkyWars extends JavaPlugin {
         EpicSkyWarsCommand executor = new EpicSkyWarsCommand(this, gameService);
         command.setExecutor(executor);
         command.setTabCompleter(executor);
+
+        PluginManager pluginManager = getServer().getPluginManager();
+        pluginManager.registerEvents(new BlockListener(gameService), this);
+        pluginManager.registerEvents(new PlayerListener(gameService), this);
     }
 
     @Override
