@@ -29,8 +29,8 @@ public final class PlayingTask implements IGameTask {
             @Override
             public void run() {
                 if (time <= 0) {
-                    cancel();
                     game.end();
+                    PlayingTask.this.cancel();
                     return;
                 }
                 if (time <= 5 || time % 60 == 0 && time != game.getGameTime()) {

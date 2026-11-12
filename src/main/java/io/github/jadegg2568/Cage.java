@@ -46,7 +46,7 @@ public class Cage {
         Player player = getPlayer();
         if (player == null) return;
 
-        Material material = player.hasPermission("jadegg.cage.admin")
+        Material material = player.hasPermission("jadegg.cage.red")
                 ? Material.RED_STAINED_GLASS
                 : Material.GLASS;
 

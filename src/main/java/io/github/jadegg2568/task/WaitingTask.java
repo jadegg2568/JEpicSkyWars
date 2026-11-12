@@ -38,8 +38,8 @@ public final class WaitingTask implements IGameTask {
                     }
 
                     if (time <= 0) {
-                        cancel();
-                        game.beginPlaying();
+                        game.preStart();
+                        WaitingTask.this.cancel();
                         return;
                     }
                     if (time <= 5 || time % 10 == 0) {

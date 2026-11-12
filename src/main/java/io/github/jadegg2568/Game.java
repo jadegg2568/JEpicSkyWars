@@ -90,32 +90,6 @@ public class Game {
         return activeTask != null ? activeTask.getTime() : 0;
     }
 
-    public void beginPlaying() {
-        if (!loaded || inGame || players.size() < min || players.size() > max) {
-            return;
-        }
-        inGame = true;
-
-        // get mechanics ready
-        for (Player player : players) {
-            resetPlayer(player);
-        }
-        broadcast(Component.text("Игра началась!", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
-
-        // start game task
-        activeTask = new PlayingTask(plugin, this);
-        activeTask.start();
-    }
-
-    public void end() {
-        if (!inGame) {
-            return;
-        }
-        // start end task
-        activeTask = new EndTask(plugin, this);
-        activeTask.start();
-    }
-
     public void reload() {
         players.addAll(spectators);
         spectators.clear();
@@ -136,6 +110,50 @@ public class Game {
         }
 
         activeTask = new WaitingTask(plugin, this);
+        activeTask.start();
+    }
+
+    public void preStart() {
+        inGame = true;
+
+        for (Player player : players) {
+            resetPlayer(player);
+            // find free cage and teleport
+            Cage freeCage = null;
+            for (Cage cage : cages) {
+                if (!cage.hasPlayer()) {
+                    freeCage = cage;
+                }
+            }
+            if (freeCage != null) {
+                freeCage.addPlayer(player);
+                freeCage.build();
+            }
+        }
+    }
+
+    public void beginPlaying() {
+        if (!loaded || inGame || players.size() < min || players.size() > max) {
+            return;
+        }
+
+        for (Cage cage : cages) {
+            cage.removePlayer();
+            cage.delete();
+        }
+        broadcast(Component.text("Игра началась!", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+
+        // start game task
+        activeTask = new PlayingTask(plugin, this);
+        activeTask.start();
+    }
+
+    public void end() {
+        if (!inGame) {
+            return;
+        }
+        // start end task
+        activeTask = new EndTask(plugin, this);
         activeTask.start();
     }
 
@@ -328,5 +346,9 @@ public class Game {
 
     public List<BlockState> getChanges() {
         return changes;
+    }
+
+    public Set<Cage> getCages() {
+        return cages;
     }
 }
