@@ -1,6 +1,7 @@
 package io.github.jadegg2568;
 
 import com.destroystokyo.paper.Title;
+import fr.mrmicky.fastboard.FastBoard;
 import io.github.jadegg2568.task.EndTask;
 import io.github.jadegg2568.task.IGameTask;
 import io.github.jadegg2568.task.PlayingTask;
@@ -34,11 +35,12 @@ public class Game {
     private boolean inGame = false;
     private IGameTask activeTask;
 
+    private final HashSet<Cage> cages = new HashSet<>();
+    private final List<BlockState> changes = new ArrayList<>();
     // players
     private final HashSet<Player> players = new HashSet<>();
     private final HashSet<Player> spectators = new HashSet<>();
-    private final HashSet<Cage> cages = new HashSet<>();
-    private final List<BlockState> changes = new ArrayList<>();
+    private final Map<Player, GameBoard> playerScoreboards = new HashMap<>();
 
     public Game(Plugin plugin, World w, String name, int min, int max, int waitingTime, int gameTime,
                 Map<SpawnType, Location> spawns) {
@@ -95,9 +97,6 @@ public class Game {
         spectators.clear();
         inGame = false;
 
-//        for (Player player : new ArrayList<>(players)) {
-//            player.kick(Component.text("Игра завершена.\nСпасибо за игру!\n\nMade By: JadeGG_\nJava Bukkit Coding\nEpicSkyWars Plugin", TextColor.color(0x35AF15)));
-//        }
         List<Player> players2 = new ArrayList<>(players);
         for (Player p : players2) {
             leave(p);
@@ -184,6 +183,7 @@ public class Game {
         }
         if (!inGame) {
             players.add(p);
+            playerScoreboards.put(p, new GameBoard(p, this));
             // broadcast
             TextComponent message = Component.text(p.getName(), TextColor.color(0xff9538))
                     .append(Component.text("зашёл. ", TextColor.color(0x42ffe6)));
@@ -200,6 +200,11 @@ public class Game {
     public void leave(Player p) {
         boolean wasPlayer = players.remove(p);
         boolean wasSpectator = spectators.remove(p);
+        GameBoard board = playerScoreboards.get(p);
+        if (board != null) {
+            board.delete();
+            playerScoreboards.remove(p);
+        }
         if (!wasPlayer && !wasSpectator) {
             return;
         }
@@ -363,5 +368,9 @@ public class Game {
 
     public Set<Cage> getCages() {
         return cages;
+    }
+
+    public Map<Player, GameBoard> getPlayerScoreboards() {
+        return playerScoreboards;
     }
 }

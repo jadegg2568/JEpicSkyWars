@@ -1,8 +1,10 @@
 package io.github.jadegg2568.task;
 
 import io.github.jadegg2568.Game;
+import io.github.jadegg2568.GameBoard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -28,6 +30,18 @@ public final class PreStartTask implements IGameTask {
         task = new BukkitRunnable() {
             @Override
             public void run() {
+                for (GameBoard board : game.getPlayerScoreboards().values()) {
+                    board.update(
+                            "",
+                            "Игроков: " + ChatColor.YELLOW +
+                                    game.getPlayers().size() + "/" + game.getMax(),
+                            "",
+                            "Старт через " + ChatColor.YELLOW + time + ChatColor.WHITE + " сек",
+                            "",
+                            ChatColor.YELLOW + "play.jadegg.ru"
+                    );
+                }
+
                 if (time <= 0) {
                     cancel();
                     game.end();

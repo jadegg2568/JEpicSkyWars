@@ -1,8 +1,10 @@
 package io.github.jadegg2568.task;
 
 import io.github.jadegg2568.Game;
+import io.github.jadegg2568.GameBoard;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -29,6 +31,22 @@ public final class WaitingTask implements IGameTask {
         task = new BukkitRunnable() {
             @Override
             public void run() {
+                for (GameBoard board : game.getPlayerScoreboards().values()) {
+                    String formattedTime = String.format("%02d:%02d", time / 60, time % 60);
+                    String timeLine = starting ?  ChatColor.GRAY + "Время: " + ChatColor.AQUA + formattedTime
+                            : "Ожидаем людей...";
+                    board.update(
+                            "",
+                            "Карта: " + ChatColor.YELLOW + game.getName(),
+                            "Игроки: " + ChatColor.YELLOW +
+                                    game.getPlayers().size() + "/" + game.getMax(),
+                            "",
+                            timeLine,
+                            "",
+                            ChatColor.YELLOW + "play.jadegg.ru"
+                    );
+                }
+
                 if (game.getPlayers().size() >= game.getMin()) {
                     if (!starting) {
                         game.broadcast(Component.text("Стартуем...", TextColor.color(0x42ffe6)),
