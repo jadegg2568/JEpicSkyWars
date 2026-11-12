@@ -11,25 +11,27 @@ import java.util.Locale;
 import java.util.Map;
 
 public final class GameService {
-    private final EpicSkyWars plugin;
+    private final EpicSkyWars main;
     private Game game;
 
     public Game getGame() {
         return game;
     }
 
-    public GameService(EpicSkyWars plugin) {
-        this.plugin = plugin;
-        loadGame();
-    }
-
-    public void reload() {
-        plugin.reloadConfig();
-        loadGame();
+    public GameService(EpicSkyWars main) {
+        this.main = main;
+        try {
+            loadGame();
+        } catch (Exception e) {
+            main.getLogger().warning("-----------------------\n" +
+                    "Failed to start the game instance:\n\n" +
+                    "" + e.getMessage() +
+                    "\n\nso you should set all required locations using /epicsw setspawn.");
+        }
     }
 
     private void loadGame() {
-        ConfigurationSection section = plugin.getConfig().getConfigurationSection("game");
+        ConfigurationSection section = main.getConfig().getConfigurationSection("game");
         if (section == null) {
             throw new IllegalStateException("Invalid configuration at game: expected a section");
         }
@@ -47,7 +49,7 @@ public final class GameService {
         }
 
         Map<SpawnType, Location> spawns = loadSpawns(section);
-        Game loadedGame = new Game(plugin, w, name,
+        Game loadedGame = new Game(main, w, name,
                 min, max,
                 waitingTime, gameTime, spawns);
         game = loadedGame;
