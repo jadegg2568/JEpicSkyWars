@@ -1,3 +1,4 @@
+
 package io.github.jadegg2568.listener;
 
 import io.github.jadegg2568.Game;
@@ -5,7 +6,6 @@ import io.github.jadegg2568.GameService;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -28,7 +28,7 @@ public final class BlockListener implements Listener {
         Game game = getGameByWorld(e.getBlock().getWorld());
         if (game == null) return;
 
-        if (!game.isPlaying(e.getPlayer())) {
+        if (!game.isInGame() || !game.isPlaying(e.getPlayer())) {
             e.setCancelled(true);
             return;
         }
@@ -42,7 +42,7 @@ public final class BlockListener implements Listener {
         Game game = getGameByWorld(e.getBlock().getWorld());
         if (game == null) return;
 
-        if (!game.isPlaying(e.getPlayer())) {
+        if (!game.isInGame() || !game.isPlaying(e.getPlayer())) {
             e.setCancelled(true);
             return;
         }
@@ -60,6 +60,11 @@ public final class BlockListener implements Listener {
         Game game = getGameByWorld(e.getBlock().getWorld());
         if (game == null) return;
 
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
+
         e.blockList().forEach(block -> saveBlock(game, block));
     }
 
@@ -67,6 +72,11 @@ public final class BlockListener implements Listener {
     public void onEntityExplode(EntityExplodeEvent e) {
         Game game = getGameByWorld(e.getLocation().getWorld());
         if (game == null) return;
+
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
 
         e.blockList().forEach(block -> saveBlock(game, block));
     }
@@ -77,6 +87,11 @@ public final class BlockListener implements Listener {
         Game game = getGameByWorld(e.getBlock().getWorld());
         if (game == null) return;
 
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
+
         saveBlock(game, e.getToBlock());
     }
 
@@ -86,7 +101,7 @@ public final class BlockListener implements Listener {
         Game game = getGameByWorld(e.getPlayer().getWorld());
         if (game == null) return;
 
-        if (!game.isPlaying(e.getPlayer())) {
+        if (!game.isInGame() || !game.isPlaying(e.getPlayer())) {
             e.setCancelled(true);
             return;
         }
@@ -99,7 +114,7 @@ public final class BlockListener implements Listener {
         Game game = getGameByWorld(e.getPlayer().getWorld());
         if (game == null) return;
 
-        if (!game.isPlaying(e.getPlayer())) {
+        if (!game.isInGame() || !game.isPlaying(e.getPlayer())) {
             e.setCancelled(true);
             return;
         }
@@ -111,25 +126,51 @@ public final class BlockListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockGrow(BlockGrowEvent e) {
         Game game = getGameByWorld(e.getBlock().getWorld());
-        if (game != null) saveBlock(game, e.getBlock());
+        if (game == null) return;
+
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
+
+        saveBlock(game, e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockSpread(BlockSpreadEvent e) {
         Game game = getGameByWorld(e.getBlock().getWorld());
-        if (game != null) saveBlock(game, e.getBlock());
+        if (game == null) return;
+
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
+
+        saveBlock(game, e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockForm(BlockFormEvent e) {
         Game game = getGameByWorld(e.getBlock().getWorld());
-        if (game != null) saveBlock(game, e.getBlock());
+        if (game == null) return;
+
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
+
+        saveBlock(game, e.getBlock());
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFertilize(BlockFertilizeEvent e) {
         Game game = getGameByWorld(e.getBlock().getWorld());
         if (game == null) return;
+
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
 
         e.getBlocks().forEach(state -> saveBlock(game, state.getBlock()));
     }
@@ -138,6 +179,11 @@ public final class BlockListener implements Listener {
     public void onStructureGrow(StructureGrowEvent e) {
         Game game = getGameByWorld(e.getWorld());
         if (game == null) return;
+
+        if (!game.isInGame()) {
+            e.setCancelled(true);
+            return;
+        }
 
         e.getBlocks().forEach(state -> saveBlock(game, state.getBlock()));
     }
@@ -148,10 +194,10 @@ public final class BlockListener implements Listener {
     }
 
     private void saveBlock(Game game, BlockState state) {
-        boolean alreadySaved = game.getChanges().stream()
-                .anyMatch(existing -> existing.getLocation().equals(state.getLocation()));
+        boolean exists = game.getChanges().stream()
+                .anyMatch(old -> old.getLocation().equals(state.getLocation()));
 
-        if (!alreadySaved) {
+        if (!exists) {
             game.getChanges().add(state);
         }
     }
