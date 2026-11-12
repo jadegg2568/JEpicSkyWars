@@ -1,5 +1,8 @@
 package io.github.jadegg2568;
 
+import java.util.Arrays;
+import java.util.List;
+
 public enum SpawnType {
     WAITING,
     SPECTATOR,
@@ -12,5 +15,11 @@ public enum SpawnType {
     CAGE_7,
     CAGE_8,
     BORDER_POS_1,
-    BORDER_POS_2
+    BORDER_POS_2;
+
+    public static List<SpawnType> getCageTypes() {
+        return Arrays.stream(values())
+                .filter(type -> type.name().startsWith("CAGE_"))
+                .toList();
+    }
 }

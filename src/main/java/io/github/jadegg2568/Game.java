@@ -5,6 +5,7 @@ import io.github.jadegg2568.task.EndTask;
 import io.github.jadegg2568.task.IGameTask;
 import io.github.jadegg2568.task.PlayingTask;
 import io.github.jadegg2568.task.WaitingTask;
+import io.papermc.paper.world.damagesource.FallLocationType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
@@ -35,9 +36,8 @@ public class Game {
 
     // players
     private final HashSet<Player> players = new HashSet<>();
-    // not in game logic
     private final HashSet<Player> spectators = new HashSet<>();
-
+    private final HashSet<Cage> cages = new HashSet<>();
     private final List<BlockState> changes = new ArrayList<>();
 
     public Game(Plugin plugin, World w, String name, int min, int max, int waitingTime, int gameTime,
@@ -52,6 +52,10 @@ public class Game {
         EnumMap<SpawnType, Location> spawnCopy = new EnumMap<>(SpawnType.class);
         spawnCopy.putAll(spawns);
         this.spawns = Collections.unmodifiableMap(spawnCopy);
+
+        for (SpawnType type : SpawnType.getCageTypes()) {
+            cages.add(new Cage(spawns.get(type)));
+        }
     }
 
     public void load() {
