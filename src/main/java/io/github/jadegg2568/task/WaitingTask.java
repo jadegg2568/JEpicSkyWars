@@ -13,11 +13,12 @@ public final class WaitingTask implements IGameTask {
     private final Game game;
     private BukkitTask task;
     private int time;
+    private boolean starting = false;
 
     public WaitingTask(Plugin plugin, Game game) {
         this.plugin = plugin;
         this.game = game;
-        this.time = game.getWaitingTime();
+        this.time = -1;
     }
 
     @Override
@@ -28,16 +29,32 @@ public final class WaitingTask implements IGameTask {
         task = new BukkitRunnable() {
             @Override
             public void run() {
-                if (time <= 0) {
-                    cancel();
-                    game.beginPlaying();
-                    return;
+                if (game.getPlayers().size() >= game.getMin()) {
+                    if (!starting) {
+                        game.broadcast(Component.text("Стартуем...", TextColor.color(0x42ffe6)),
+                                Sound.ENTITY_VILLAGER_NO);
+                        time = game.getWaitingTime();
+                        starting = true;
+                    }
+
+                    if (time <= 0) {
+                        cancel();
+                        game.beginPlaying();
+                        return;
+                    }
+                    if (time <= 5 || time % 10 == 0) {
+                        game.broadcast(Component.text("Игра начнётся через " + time + " сек.", TextColor.color(0x42ffe6)),
+                                Sound.BLOCK_NOTE_BLOCK_HAT);
+                    }
+                    time--;
+                } else {
+                    if (starting) {
+                        game.broadcast(Component.text("Недостаточно игроков!", TextColor.color(0x42ffe6)),
+                                Sound.ENTITY_VILLAGER_NO);
+                        time = -1;
+                        starting = false;
+                    }
                 }
-                if (time <= 5 || time % 10 == 0) {
-                    game.broadcast(Component.text("Игра начнётся через " + time + " сек.", TextColor.color(0x42ffe6)),
-                            Sound.BLOCK_NOTE_BLOCK_HAT);
-                }
-                time--;
             }
         }.runTaskTimer(plugin, 0L, 20L);
     }

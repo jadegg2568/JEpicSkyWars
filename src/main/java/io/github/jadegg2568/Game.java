@@ -257,6 +257,8 @@ public class Game {
         broadcast(message, null);
     }
 
+    public Set<Player> getPlayers() { return players; }
+
     public Location getSpawn(SpawnType type) {
         return spawns.get(type);
     }
