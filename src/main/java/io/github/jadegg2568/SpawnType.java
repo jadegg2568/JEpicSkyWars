@@ -10,5 +10,7 @@ public enum SpawnType {
     CAGE_5,
     CAGE_6,
     CAGE_7,
-    CAGE_8
+    CAGE_8,
+    BORDER_POS_1,
+    BORDER_POS_2
 }
