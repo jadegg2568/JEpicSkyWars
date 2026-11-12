@@ -1,5 +1,6 @@
 package io.github.jadegg2568;
 
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class EpicSkyWars extends JavaPlugin {
@@ -9,6 +10,12 @@ public final class EpicSkyWars extends JavaPlugin {
     public void onEnable() {
         saveDefaultConfig();
         gameService = new GameService(this);
+
+        PluginCommand command = getCommand("epicsw");
+        if (command == null) {
+            throw new IllegalStateException("Command 'epicsw' is missing from plugin.yml");
+        }
+        command.setExecutor(new EpicSkyWarsCommand(gameService));
     }
 
     @Override

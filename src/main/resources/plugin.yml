@@ -4,3 +4,8 @@ version: '${version}'
 main: io.github.jadegg2568.EpicSkyWars
 api-version: '26.3'
 load: POSTWORLD
+
+commands:
+  epicsw:
+    description: Join or leave the EpicSkyWars game
+    usage: /epicsw [join|leave]

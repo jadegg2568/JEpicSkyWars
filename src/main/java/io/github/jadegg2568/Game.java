@@ -11,7 +11,6 @@ import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
-import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
@@ -22,7 +21,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Game {
     private final Plugin plugin;
@@ -148,6 +146,14 @@ public class Game {
             resetPlayer(p);
             switchSpectator(p, true);
         }
+    }
+
+    public boolean hasPlayer(Player player) {
+        return players.contains(player) || spectators.contains(player);
+    }
+
+    public boolean isFull() {
+        return !inGame && players.size() >= max;
     }
 
     public void leave(Player p) {
