@@ -184,6 +184,7 @@ public class Game {
         if (!inGame) {
             players.add(p);
             playerScoreboards.put(p, new GameBoard(p, this));
+            p.teleport(getSpawn(SpawnType.WAITING));
             // broadcast
             TextComponent message = Component.text(p.getName(), TextColor.color(0xff9538))
                     .append(Component.text("зашёл. ", TextColor.color(0x42ffe6)));
@@ -255,6 +256,7 @@ public class Game {
         if (b) {
             players.remove(p);
             spectators.add(p);
+            p.teleport(getSpawn(SpawnType.SPECTATOR));
         } else {
             spectators.remove(p);
             players.add(p);
