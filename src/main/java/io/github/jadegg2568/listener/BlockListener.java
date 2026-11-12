@@ -4,6 +4,8 @@ package io.github.jadegg2568.listener;
 import io.github.jadegg2568.Game;
 import io.github.jadegg2568.GameService;
 import io.github.jadegg2568.lucky.LuckyBlockType;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -90,7 +92,19 @@ public final class BlockListener implements Listener {
             return;
         }
 
+        if (!game.isWithinArena(e.getBlock().getLocation())) {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage(Component.text("НВы не можете выходить за карту!", TextColor.color(0xFF0F00)));
+            return;
+        }
+
         if (e instanceof BlockMultiPlaceEvent multi) {
+            if (multi.getReplacedBlockStates().stream()
+                    .anyMatch(state -> !game.isWithinArena(state.getLocation()))) {
+                e.setCancelled(true);
+                e.getPlayer().sendMessage(Component.text("НВы не можете выходить за карту!", TextColor.color(0xFF0F00)));
+                return;
+            }
             multi.getReplacedBlockStates().forEach(state -> saveBlock(game, state));
         } else {
             saveBlock(game, e.getBlockReplacedState());

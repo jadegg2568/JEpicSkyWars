@@ -336,6 +336,25 @@ public class Game {
         return spawns.get(type);
     }
 
+    public boolean isWithinArena(Location location) {
+        Location pos1 = spawns.get(SpawnType.BORDER_POS_1);
+        Location pos2 = spawns.get(SpawnType.BORDER_POS_2);
+        if (location == null || pos1 == null || pos2 == null
+                || !w.equals(location.getWorld())
+                || !w.equals(pos1.getWorld())
+                || !w.equals(pos2.getWorld())) {
+            return false;
+        }
+
+        return isBetween(location.getBlockX(), pos1.getBlockX(), pos2.getBlockX())
+                && isBetween(location.getBlockY(), pos1.getBlockY(), pos2.getBlockY())
+                && isBetween(location.getBlockZ(), pos1.getBlockZ(), pos2.getBlockZ());
+    }
+
+    private boolean isBetween(int coordinate, int first, int second) {
+        return coordinate >= Math.min(first, second) && coordinate <= Math.max(first, second);
+    }
+
     public boolean isLoaded() {
         return loaded;
     }
