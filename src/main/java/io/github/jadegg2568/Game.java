@@ -152,6 +152,19 @@ public class Game {
         if (!inGame) {
             return;
         }
+
+        if (players.size() == 1) {
+            Player winner = players.iterator().next();
+
+            broadcast(
+                    Component.text("------------------------------\n", TextColor.color(0x757575))
+                            .append(Component.text("ПОБЕДИТЕЛЬ: ", TextColor.color(0xffd700)))
+                            .append(Component.text(winner.getName(), TextColor.color(0x42ffe6)))
+                            .append(Component.text("\n------------------------------", TextColor.color(0x757575))),
+                    Sound.UI_TOAST_CHALLENGE_COMPLETE
+            );
+        }
+
         // start end task
         activeTask = new EndTask(plugin, this);
         activeTask.start();
