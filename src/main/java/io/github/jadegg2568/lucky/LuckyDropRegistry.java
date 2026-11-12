@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -15,6 +16,61 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class LuckyDropRegistry {
+    public static final LuckyDropRegistry YELLOW;
+    public static final LuckyDropRegistry RED;
+    public static final LuckyDropRegistry BLUE;
+    public static final LuckyDropRegistry GREEN;
+
+    static {
+        YELLOW = new LuckyDropRegistry()
+                .register(new LuckyDrop("food", 20, p ->
+                        giveItems(p, "Food!", new ItemStack(Material.COOKED_BEEF, 8))))
+                .register(new LuckyDrop("archer", 15, p ->
+                        giveItems(p, "Archer kit!", new ItemStack(Material.BOW), new ItemStack(Material.ARROW, 16))))
+                .register(new LuckyDrop("speed", 15, p ->
+                        giveEffect(p, "Speed!", PotionEffectType.SPEED, 15, 1)))
+                .register(new LuckyDrop("chicken", 10, p ->
+                        p.getWorld().spawnEntity(p.getLocation(), EntityType.CHICKEN)))
+                .register(new LuckyDrop("blindness", 5, p ->
+                        giveEffect(p, "Bad luck!", PotionEffectType.BLINDNESS, 5, 0)));
+
+        RED = new LuckyDropRegistry()
+                .register(new LuckyDrop("iron_kit", 20, p ->
+                        giveItems(p, "Iron kit!", new ItemStack(Material.IRON_SWORD), new ItemStack(Material.IRON_CHESTPLATE))))
+                .register(new LuckyDrop("golden_apple", 15, p ->
+                        giveItems(p, "Golden apples!", new ItemStack(Material.GOLDEN_APPLE, 2))))
+                .register(new LuckyDrop("golem", 10, p ->
+                        p.getWorld().spawnEntity(p.getLocation(), EntityType.IRON_GOLEM)))
+                .register(new LuckyDrop("weakness", 5, p ->
+                        giveEffect(p, "Weakness!", PotionEffectType.WEAKNESS, 10, 0)));
+
+        BLUE = new LuckyDropRegistry()
+                .register(new LuckyDrop("diamond_sword", 20, p ->
+                        giveItems(p, "Diamond sword!", new ItemStack(Material.DIAMOND_SWORD))))
+                .register(new LuckyDrop("ender_pearls", 15, p ->
+                        giveItems(p, "Ender pearls!", new ItemStack(Material.ENDER_PEARL, 4))))
+                .register(new LuckyDrop("wolf", 10, p ->
+                        p.getWorld().spawnEntity(p.getLocation(), EntityType.WOLF)))
+                .register(new LuckyDrop("regeneration", 15, p ->
+                        giveEffect(p, "Regeneration!", PotionEffectType.REGENERATION, 15, 1)))
+                .register(new LuckyDrop("creeper", 5, p ->
+                        p.getWorld().spawnEntity(p.getLocation(), EntityType.CREEPER)));
+
+        GREEN = new LuckyDropRegistry()
+                .register(new LuckyDrop("netherite_sword", 15, p ->
+                        giveItems(p, "Netherite sword!", new ItemStack(Material.NETHERITE_SWORD))))
+                .register(new LuckyDrop("totem", 15, p ->
+                        giveItems(p, "Totem!", new ItemStack(Material.TOTEM_OF_UNDYING))))
+                .register(new LuckyDrop("god_speed", 10, p -> {
+                    giveEffect(p, "God speed!", PotionEffectType.SPEED, 30, 1);
+                    giveEffect(p, "Jump boost!", PotionEffectType.JUMP_BOOST, 30, 1);
+                }))
+                .register(new LuckyDrop("emeralds", 10, p ->
+                        giveItems(p, "Emerald rain!", new ItemStack(Material.EMERALD, 32))))
+                .register(new LuckyDrop("enderman", 5, p ->
+                        p.getWorld().spawnEntity(p.getLocation(), EntityType.ENDERMAN)));
+    }
+
     private final List<LuckyDrop> drops = new ArrayList<>();
     private long totalWeight;
 

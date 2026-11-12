@@ -3,9 +3,14 @@ package io.github.jadegg2568.listener;
 
 import io.github.jadegg2568.Game;
 import io.github.jadegg2568.GameService;
+import io.github.jadegg2568.lucky.LuckyBlockType;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
+import org.bukkit.entity.ExperienceOrb;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -14,6 +19,10 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.world.StructureGrowEvent;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.Arrays;
+import java.util.Collection;
 
 public final class BlockListener implements Listener {
     private final GameService gameService;
@@ -25,16 +34,50 @@ public final class BlockListener implements Listener {
     // BREAK
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent e) {
-        Game game = getGameByWorld(e.getBlock().getWorld());
-        if (game == null) return;
+        e.setCancelled(true);
 
-        if (!game.isInGame() || !game.isPlaying(e.getPlayer())) {
-            e.setCancelled(true);
+        Game game = getGameByWorld(e.getBlock().getWorld());
+        if (game == null || !game.isInGame()) return;
+
+        Player player = e.getPlayer();
+        if (!game.isPlaying(player)) return;
+
+        Block block = e.getBlock();
+
+        // save source state
+        saveBlock(game, block);
+
+        // check if the block is lucky block
+        LuckyBlockType luckyType = Arrays.stream(LuckyBlockType.values())
+                .filter(type -> type.getMaterial() == block.getType())
+                .findFirst()
+                .orElse(null);
+
+        if (luckyType != null) {
+            block.setType(Material.AIR, false);
+            luckyType.getDrops().dropRandom(player); // drop random loot
             return;
         }
 
-        saveBlock(game, e.getBlock());
+        // standard block breaking
+        Collection<ItemStack> drops = block.getDrops(
+                player.getInventory().getItemInMainHand(),
+                player
+        );
+
+        int exp = e.getExpToDrop();
+        Location location = block.getLocation().add(0.5, 0.5, 0.5);
+
+        block.setType(Material.AIR, false);
+
+        drops.forEach(item -> block.getWorld().dropItemNaturally(location, item));
+
+        if (exp > 0) {
+            block.getWorld().spawn(location, ExperienceOrb.class,
+                    orb -> orb.setExperience(exp));
+        }
     }
+
 
     // PLACE + MULTI PLACE
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
