@@ -1,0 +1,8 @@
+# Plugin settings can be added here.
+game:
+  world: world
+  name: game-1
+  min: 4
+  max: 8
+  teamSize: 1
+  teamCount: 8

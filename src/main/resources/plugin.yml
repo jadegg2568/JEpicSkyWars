@@ -1,0 +1,6 @@
+name: EpicSkyWars
+version: '${version}'
+
+main: io.github.jadegg2568.EpicSkyWars
+api-version: '26.3'
+load: POSTWORLD
