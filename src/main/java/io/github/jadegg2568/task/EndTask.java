@@ -36,7 +36,7 @@ public final class EndTask implements IGameTask {
         seconds = 0;
 
         game.broadcast(
-                Component.text("Игра завершена.", TextColor.color(0x42ffe6)),
+                Component.text("Перезагрузка через 10 секунд!", TextColor.color(0xFF0000)),
                 Sound.ENTITY_PLAYER_LEVELUP
         );
 
