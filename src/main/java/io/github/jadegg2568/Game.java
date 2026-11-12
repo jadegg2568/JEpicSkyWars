@@ -92,7 +92,6 @@ public class Game {
     }
 
     public void beginPlaying() {
-        activeTask = null;
         if (!loaded || inGame || players.size() < min || players.size() > max) {
             return;
         }
@@ -113,18 +112,12 @@ public class Game {
         if (!inGame) {
             return;
         }
-        if (activeTask != null) {
-            activeTask.cancel();
-        }
         // start end task
         activeTask = new EndTask(plugin, this);
         activeTask.start();
     }
 
     public void finish() {
-        if (activeTask != null) {
-            activeTask.cancel();
-        }
         for (Player player : players) {
             resetPlayer(player);
             player.teleport(getSpawn(SpawnType.WAITING));
