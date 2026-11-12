@@ -1,6 +1,7 @@
 package io.github.jadegg2568;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -40,25 +41,25 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
         switch (subcommand) {
             case "join" -> {
                 if (game.hasPlayer(player)) {
-                    sender.sendMessage(Component.text("Вы уже находитесь в игре."));
+                    sender.sendMessage(Component.text("Вы уже находитесь в игре.", TextColor.color(0xFF0F00)));
                 } else if (game.isFull()) {
-                    sender.sendMessage(Component.text("Игра заполнена."));
+                    sender.sendMessage(Component.text("Игра заполнена.", TextColor.color(0xFF0F00)));
                 } else {
+                    sender.sendMessage(Component.text("Подключение...", TextColor.color(0x42ffe6)));
                     game.join(player);
-                    sender.sendMessage(Component.text("Вы присоединились к игре."));
                 }
             }
             case "leave" -> {
                 if (!game.hasPlayer(player)) {
-                    sender.sendMessage(Component.text("Вы не находитесь в игре."));
+                    sender.sendMessage(Component.text("Вы не находитесь в игре.", TextColor.color(0xFF0F00)));
                 } else {
                     game.leave(player);
-                    sender.sendMessage(Component.text("Вы вышли из игры."));
+                    sender.sendMessage(Component.text("Вы вышли из игры.", TextColor.color(0xFF0F00)));
                 }
             }
             case "setspawn" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(Component.text("Недостаточно аргов!"));
+                    sender.sendMessage(Component.text("Недостаточно аргов!", TextColor.color(0xFF0F00)));
                     break;
                 }
                 String name = args[1].toUpperCase();
@@ -68,7 +69,7 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
                 try {
                     type = SpawnType.valueOf(name);
                 } catch (Exception e) {
-                    sender.sendMessage(Component.text("Неверная локация: " + name));
+                    sender.sendMessage(Component.text("Неверная локация: " + name, TextColor.color(0xFF0F00)));
                     break;
                 }
                 Location spawn = player.getLocation();
@@ -78,7 +79,7 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
             }
             case "fakeban", "fakehypixelban" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(Component.text("Недостаточно аргов!"));
+                    sender.sendMessage(Component.text("Недостаточно аргов!", TextColor.color(0xFF0F00)));
                     break;
                 }
                 String name = args[1];
@@ -122,6 +123,6 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(Component.text("Использование: /" + label + " [join|leave|fakehypixelban]"));
+        sender.sendMessage(Component.text("Использование: /" + label + " [join|leave|fakehypixelban]", TextColor.color(0x42ffe6)));
     }
 }

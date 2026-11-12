@@ -138,7 +138,8 @@ public class Game {
         if (!inGame) {
             players.add(p);
             // broadcast
-            TextComponent message = Component.text("Зашёл: ", TextColor.color(0x42ffe6)).append(Component.text(p.getName(), TextColor.color(0xff9538)));
+            TextComponent message = Component.text(p.getName(), TextColor.color(0xff9538))
+                    .append(Component.text("зашёл. ", TextColor.color(0x42ffe6)));
             broadcast(message,
                     Sound.ENTITY_VILLAGER_NO);
         } else {
@@ -164,10 +165,11 @@ public class Game {
         }
 
         if (wasPlayer) {
-            Component message = Component.text(
-                    inGame ? "Отключился: " : "Вышел: ",
-                    TextColor.color(inGame ? 0x757575 : 0x42ffe6)
-            ).append(Component.text(p.getName(), TextColor.color(0xff9538)));
+            Component message = Component.text(p.getName(), TextColor.color(0xff9538))
+                    .append(Component.text(
+                            inGame ? " отключился" : " вышел",
+                            TextColor.color(inGame ? 0x757575 : 0x42ffe6)
+                    ));
             broadcast(message, Sound.ENTITY_VILLAGER_NO);
             endIfAvailable();
         }
@@ -187,16 +189,16 @@ public class Game {
     public void onDie(Player p, Player killer, boolean byVoid) {
         // broadcast
         if (killer != null) {
-            broadcast(Component.text(p.getName() + " убит игроком " + killer.getName() + ".", TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+            broadcast(Component.text(p.getName() + " был убит " + killer.getName(), TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
         } else {
-            broadcast(Component.text(p.getName() + (byVoid ? " выпал." : " умер."), TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
+            broadcast(Component.text(p.getName() + (byVoid ? " выпал из мира" : " умер"), TextColor.color(0x757575)), Sound.ENTITY_PLAYER_LEVELUP);
         }
 
         // send him broadcast
-        p.sendMessage(Component.text("Вы умерли! Удачи в следующей игре.", TextColor.color(0x757575)));
+        p.sendMessage(Component.text("Вы умерли! Удачи в следующей игре", TextColor.color(0x757575)));
         p.sendTitle(Title.builder().
                 title(ChatColor.RED + "Вы проебали!")
-                .subtitle("В прочем нам похуй.")
+                .subtitle("В прочем нам похуй, меняйте на себя сэнсэй.")
                 .build());
 
         switchSpectator(p, true);
