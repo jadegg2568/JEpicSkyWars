@@ -62,20 +62,26 @@ public final class EpicSkyWarsCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage(Component.text("Недостаточно аргов!", TextColor.color(0xFF0F00)));
                     break;
                 }
-                String name = args[1].toUpperCase();
+                String name = args[1].toUpperCase(Locale.ROOT);
 
                 // parse type
                 SpawnType type;
                 try {
                     type = SpawnType.valueOf(name);
-                } catch (Exception e) {
+                } catch (IllegalArgumentException e) {
                     sender.sendMessage(Component.text("Неверная локация: " + name, TextColor.color(0xFF0F00)));
                     break;
                 }
                 Location spawn = player.getLocation();
 
                 // set spawn
-                main.getConfig().set("game.locations." + type.name(), spawn);
+                String path = "game.locations." + type.name().toLowerCase(Locale.ROOT);
+                main.getConfig().set(path, spawn);
+                main.saveConfig();
+                sender.sendMessage(Component.text(
+                        "Spawn " + type.name().toLowerCase(Locale.ROOT) + " saved. Restart the server to apply it.",
+                        TextColor.color(0x42ffe6)
+                ));
             }
             case "fakeban", "fakehypixelban" -> {
                 if (args.length < 2) {
